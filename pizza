@@ -1,0 +1,72 @@
+-- Создание базы данных
+DROP DATABASE IF EXISTS pizza3;
+CREATE DATABASE pizza3;
+USE pizza3;
+
+-- Таблица ролей
+CREATE TABLE roles (
+    id_role INT PRIMARY KEY AUTO_INCREMENT,
+    name_role VARCHAR(50) NOT NULL
+);
+
+-- Таблица пользователей
+CREATE TABLE users (
+    id_user INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    contact_info VARCHAR(255),
+    id_role INT NOT NULL,
+    FOREIGN KEY (id_role) REFERENCES roles(id_role)
+);
+
+-- Таблица меню
+CREATE TABLE menu (
+    id_menu INT PRIMARY KEY AUTO_INCREMENT,
+    name_item VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL,
+    category VARCHAR(50),
+    quantity INT DEFAULT 0,
+    discount INT DEFAULT 0,
+    manufacturer VARCHAR(100),
+    supplier VARCHAR(100),
+    photo VARCHAR(255) DEFAULT 'menu.png'
+);
+
+-- Таблица заказов
+CREATE TABLE orders (
+    id_order INT PRIMARY KEY AUTO_INCREMENT,
+    id_user INT NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status VARCHAR(50) DEFAULT 'Ожидает приготовления',
+    address VARCHAR(255),
+    FOREIGN KEY (id_user) REFERENCES users(id_user) ON DELETE CASCADE
+);
+
+-- Таблица позиций заказа
+CREATE TABLE order_item (
+    id_order_item INT PRIMARY KEY AUTO_INCREMENT,
+    id_order INT NOT NULL,
+    id_menu INT NOT NULL,
+    quantity INT NOT NULL,
+    FOREIGN KEY (id_order) REFERENCES orders(id_order) ON DELETE CASCADE,
+    FOREIGN KEY (id_menu) REFERENCES menu(id_menu) ON DELETE CASCADE
+);
+
+-- Начальные данные
+INSERT INTO roles (name_role) VALUES
+('admin'), ('staff'), ('customer');
+
+INSERT INTO users (username, password, contact_info, id_role) VALUES
+('admin', '123', 'Иван Админов', 1),
+('staff', '123', 'Анна Менеджер', 2),
+('customer', '123', 'Петр Клиентов', 3);
+
+INSERT INTO menu (name_item, description, price, category, quantity, discount) VALUES
+('Маргарита', 'Томатный соус, моцарелла, базилик', 450, 'Пицца', 50, 0),
+('Пепперони', 'Пепперони, моцарелла, томатный соус', 550, 'Пицца', 30, 20),
+('4 Сыра', 'Моцарелла, пармезан, горгонзола, фета', 650, 'Пицца', 0, 0),
+('Цезарь', 'Курица, пармезан, соус цезарь', 350, 'Салаты', 20, 10),
+('Тирамису', 'Кофе, маскарпоне, какао', 250, 'Десерты', 5, 0),
+('Кока-кола', 'Газированный напиток', 100, 'Напитки', 100, 5);

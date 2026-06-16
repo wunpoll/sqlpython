@@ -1,0 +1,108 @@
+DROP DATABASE IF EXISTS store_db;
+CREATE DATABASE store_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE store_db;
+
+-- 1. Пользователи
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL,
+    role VARCHAR(20) NOT NULL,   -- admin, manager, user, guest
+    full_name VARCHAR(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Категории
+CREATE TABLE categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. Производители
+CREATE TABLE manufacturers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Поставщики
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. Товары
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    discount DECIMAL(5,2) DEFAULT 0,
+    photo_path VARCHAR(255),
+    category_id INT,
+    manufacturer_id INT,
+    supplier_id INT,
+    unit VARCHAR(10) DEFAULT 'шт.',
+    description TEXT,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(id) ON DELETE SET NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 6. Заказы
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending',   -- pending, processing, completed, cancelled
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- Добавление тестовых данных
+-- ============================================================
+
+-- Пользователи
+INSERT INTO users (username, password, role, full_name) VALUES
+('admin', 'admin123', 'admin', 'Администратор Системы'),
+('manager', 'manager123', 'manager', 'Менеджер Иванов Иван'),
+('user', 'user123', 'user', 'Клиент Петров Петр'),
+('guest', '', 'guest', 'Гость');
+
+-- Категории
+INSERT INTO categories (name) VALUES
+('Женская обувь'), ('Мужская обувь'), ('Детская обувь');
+
+-- Производители
+INSERT INTO manufacturers (name) VALUES
+('Kari'), ('Marco Tozzi'), ('Рос'), ('Rieker'), ('Alessio Nesca'), ('CROSBY');
+
+-- Поставщики
+INSERT INTO suppliers (name) VALUES
+('Kari'), ('Обувь для вас');
+
+-- Товары (первые 10 из вашего файла Tovar.xlsx)
+INSERT INTO products (name, price, stock, discount, category_id, manufacturer_id, supplier_id, unit, description, photo_path) VALUES
+('Ботинки', 4990, 6, 3, 1, 1, 1, 'шт.', 'Женские Ботинки демисезонные kari', '1.jpg'),
+('Ботинки', 3244, 13, 2, 1, 2, 2, 'шт.', 'Ботинки Marco Tozzi женские демисезонные, размер 39, цвет бежевый', '2.jpg'),
+('Туфли', 4499, 5, 4, 2, 1, 1, 'шт.', 'Туфли kari мужские классика MYZ21AW-450A, размер 43, цвет: черный', '3.jpg'),
+('Ботинки', 5900, 8, 2, 2, 3, 1, 'шт.', 'Мужские ботинки Рос-Обувь кожаные с натуральным мехом', '4.jpg'),
+('Ботинки', 3800, 16, 2, 2, 4, 2, 'шт.', 'B3430/14 Полуботинки мужские Rieker', '5.jpg'),
+('Кроссовки', 4100, 6, 3, 2, 3, 2, 'шт.', '129615-4 Кроссовки мужские', '6.jpg'),
+('Туфли', 2700, 14, 2, 1, 2, 1, 'шт.', 'Туфли Marco Tozzi женские летние, размер 39, цвет черный', '7.jpg'),
+('Полуботинки', 1890, 4, 4, 1, 5, 2, 'шт.', 'Полуботинки Alessio Nesca женские 3-30797-47, размер 37, цвет: бордовый', '8.jpg'),
+('Туфли', 4300, 6, 2, 1, 4, 1, 'шт.', 'Туфли Rieker женские демисезонные, размер 41, цвет коричневый', '9.jpg'),
+('Туфли', 2800, 15, 3, 1, 1, 1, 'шт.', 'Туфли kari женские TR-YR-413017, размер 37, цвет: черный', '10.jpg');
+
+-- Ещё несколько товаров
+INSERT INTO products (name, price, stock, discount, category_id, manufacturer_id, supplier_id, unit, description) VALUES
+('Полуботинки', 2156, 6, 3, 2, 6, 2, 'шт.', '407700/01-01 Полуботинки мужские CROSBY'),
+('Полуботинки', 1800, 14, 2, 1, 1, 1, 'шт.', 'Полуботинки kari женские MYZ20S-149, размер 41, цвет: черный'),
+('Кеды', 5500, 0, 3, 2, 6, 2, 'шт.', 'Кеды Caprice мужские демисезонные, размер 42, цвет черный');
+
+-- Заказы (примеры)
+INSERT INTO orders (username, product_id, quantity, status) VALUES
+('user', 1, 2, 'completed'),
+('user', 2, 1, 'pending'),
+('manager', 3, 3, 'processing'),
+('admin', 4, 1, 'cancelled');

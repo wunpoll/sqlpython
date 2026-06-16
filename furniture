@@ -1,0 +1,164 @@
+
+DROP DATABASE IF EXISTS furniture_store;
+CREATE DATABASE furniture_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE furniture_store;
+
+-- 1. Пользователи (сотрудники и клиенты)
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(50) NOT NULL,
+    role VARCHAR(20) NOT NULL,          -- admin, manager, client, guest
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Категории мебели (например, "Столы", "Стулья", "Шкафы", "Диваны")
+CREATE TABLE categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    parent_id INT NULL,                 -- для вложенных категорий (опционально)
+    FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 3. Производители (фабрики)
+CREATE TABLE manufacturers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    country VARCHAR(50)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 4. Поставщики (оптовые компании)
+CREATE TABLE suppliers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    contact_person VARCHAR(100),
+    phone VARCHAR(20)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 5. Материалы (из которых сделана мебель, например, дерево, металл, стекло)
+CREATE TABLE materials (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 6. Товары (мебель)
+CREATE TABLE products (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    stock INT NOT NULL DEFAULT 0,
+    discount DECIMAL(5,2) DEFAULT 0,
+    photo_path VARCHAR(255),
+    category_id INT,
+    manufacturer_id INT,
+    supplier_id INT,
+    material_id INT,                    -- основной материал
+    unit VARCHAR(10) DEFAULT 'шт.',
+    description TEXT,
+    dimensions VARCHAR(50),             -- габариты, например "120x60x75 см"
+    weight DECIMAL(8,2),                -- вес в кг
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (manufacturer_id) REFERENCES manufacturers(id) ON DELETE SET NULL,
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 7. Заказы (покупки)
+CREATE TABLE orders (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,       -- логин клиента (из users)
+    product_id INT NOT NULL,
+    quantity INT NOT NULL,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20) DEFAULT 'pending', -- pending, processing, shipped, delivered, cancelled
+    delivery_address TEXT,
+    delivery_date DATE,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 8. Отзывы (если нужны)
+CREATE TABLE reviews (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    username VARCHAR(50) NOT NULL,
+    rating INT CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Индексы для ускорения
+CREATE INDEX idx_products_name ON products(name);
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_orders_username ON orders(username);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_reviews_product ON reviews(product_id);
+
+-- ============================================================
+-- Тестовые данные
+-- ============================================================
+
+-- Пользователи
+INSERT INTO users (username, password, role, full_name, phone, email) VALUES
+('admin', 'admin123', 'admin', 'Администратор Иванов', '+7-999-123-45-67', 'admin@furniture.ru'),
+('manager', 'manager123', 'manager', 'Менеджер Петрова', '+7-999-234-56-78', 'manager@furniture.ru'),
+('client1', 'client123', 'client', 'Клиент Сидоров', '+7-999-345-67-89', 'client1@mail.ru'),
+('client2', 'pass456', 'client', 'Клиент Козлова', '+7-999-456-78-90', 'client2@yandex.ru');
+
+-- Категории (иерархия: Мебель -> Комнатная -> Гостиная, Спальня и т.д.)
+INSERT INTO categories (name, parent_id) VALUES
+('Мебель', NULL),
+('Комнатная мебель', 1),
+('Офисная мебель', 1),
+('Гостиная', 2),
+('Спальня', 2),
+('Кухня', 2),
+('Столы', 3),
+('Стулья', 3),
+('Шкафы', 3);
+
+-- Производители
+INSERT INTO manufacturers (name, country) VALUES
+('IKEA', 'Швеция'),
+('Hoff', 'Россия'),
+('Mr.Doors', 'Россия'),
+('Lazurit', 'Беларусь'),
+('Sokol', 'Россия');
+
+-- Поставщики
+INSERT INTO suppliers (name, contact_person, phone) VALUES
+('Мебель-Трейд', 'Сергей В.', '+7-495-111-22-33'),
+('Фурнитура-Сервис', 'Ольга М.', '+7-495-222-33-44'),
+('Древ-Снаб', 'Антон П.', '+7-495-333-44-55');
+
+-- Материалы
+INSERT INTO materials (name) VALUES
+('Дуб'), ('Сосна'), ('Бук'), ('Металл'), ('Стекло'), ('ЛДСП'), ('МДФ');
+
+-- Товары (мебель)
+INSERT INTO products (name, price, stock, discount, category_id, manufacturer_id, supplier_id, material_id, unit, description, dimensions, weight) VALUES
+('Стол обеденный "Сканди"', 15990, 12, 5, 7, 1, 1, 1, 'шт.', 'Стол из массива дуба, раздвижной', '140x80x75 см', 18.5),
+('Стул мягкий "Комфорт"', 4990, 25, 10, 8, 2, 2, 4, 'шт.', 'Стул на металлическом каркасе с мягкой обивкой', '45x45x90 см', 4.2),
+('Шкаф-купе "Практик"', 24990, 8, 15, 9, 3, 1, 6, 'шт.', 'Шкаф-купе с зеркальными дверями, 4 секции', '240x60x210 см', 85.0),
+('Диван угловой "Атлант"', 45990, 3, 20, 4, 4, 3, 7, 'шт.', 'Угловой диван с механизмом раскладывания, ткань велюр', '250x180x90 см', 120.0),
+('Кровать двуспальная "Лидер"', 32990, 6, 8, 5, 5, 2, 1, 'шт.', 'Кровать из массива сосны с ортопедическим основанием', '200x180x100 см', 55.0),
+('Стол письменный "Офисный"', 8990, 15, 3, 7, 1, 1, 6, 'шт.', 'Прямой стол с тумбой, ЛДСП', '120x60x75 см', 25.0),
+('Кресло офисное "Эрго"', 12990, 10, 12, 8, 2, 2, 4, 'шт.', 'Кресло с регулировкой высоты и наклона', '65x65x120 см', 14.0),
+('Тумба прикроватная "Ночка"', 3990, 20, 0, 5, 3, 1, 7, 'шт.', 'Тумба с одним ящиком, МДФ', '45x40x55 см', 8.0),
+('Стенка гостиная "Виола"', 38990, 4, 25, 4, 4, 3, 6, 'шт.', 'Стенка из ЛДСП с открытыми и закрытыми секциями', '300x60x220 см', 95.0),
+('Обеденный уголок "Уют"', 18990, 7, 5, 6, 5, 2, 1, 'шт.', 'Уголок кухонный с мягкими сиденьями', '200x150x85 см', 45.0);
+
+-- Заказы (примеры)
+INSERT INTO orders (username, product_id, quantity, status, delivery_address, delivery_date) VALUES
+('client1', 1, 2, 'shipped', 'Москва, ул. Ленина, д.5, кв.12', '2026-06-25'),
+('client1', 3, 1, 'pending', 'Москва, ул. Ленина, д.5, кв.12', NULL),
+('client2', 4, 1, 'delivered', 'СПб, пр. Невский, д.10, кв.8', '2026-06-10'),
+('client2', 6, 3, 'processing', 'СПб, пр. Невский, д.10, кв.8', NULL);
+
+-- Отзывы
+INSERT INTO reviews (product_id, username, rating, comment) VALUES
+(1, 'client1', 5, 'Отличный стол, очень крепкий!'),
+(4, 'client2', 4, 'Диван удобный, но цвет чуть темнее, чем на фото.'),
+(5, 'client1', 5, 'Кровать шикарная, ребёнок спит спокойно.');
